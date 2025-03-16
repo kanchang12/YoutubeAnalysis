@@ -6,3 +6,4 @@ openai
 scikit-learn
 gunicorn
 flask-cors
+import requests
