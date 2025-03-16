@@ -33,7 +33,7 @@ LOOKER_STUDIO_IFRAMES = {
 def load_data(filepath):
     try:
         df = pd.read_csv(filepath)
-        
+        filepath = "https://www.dropbox.com/scl/fi/zvxl6im53o7aoy290530g/youtube_videos_Final_with_classification_and_similarity.csv?rlkey=b76k2j3ou74vj30l7m4egeidq&st=vh573jaz&dl=1"
         # First handle numeric columns
         numeric_cols = ['view_count', 'like_count', 'comment_count']
         df[numeric_cols] = df[numeric_cols].apply(pd.to_numeric, errors='coerce')
@@ -310,7 +310,7 @@ def get_chart_data():
         data = request.json
         user_query = data.get('query', '')
         
-        filepath = "https://docs.google.com/spreadsheets/d/1yf73SfxVAcRGPh0FmzORwyXA_Tke0lXm8mwYfrWHVKA/edit?usp=sharing"
+        filepath = "filepath = "https://www.dropbox.com/scl/fi/zvxl6im53o7aoy290530g/youtube_videos_Final_with_classification_and_similarity.csv?rlkey=b76k2j3ou74vj30l7m4egeidq&st=vh573jaz&dl=1"
         df = load_data(filepat, on_bad_lines='skip')
         
         if df is None:
@@ -423,7 +423,7 @@ def get_chart_data():
 @app.route('/analyze', methods=['GET'])
 def analyze():
     try:
-        filepath = "https://docs.google.com/spreadsheets/d/1yf73SfxVAcRGPh0FmzORwyXA_Tke0lXm8mwYfrWHVKA/edit?usp=sharing"
+        filepath = filepath = "https://www.dropbox.com/scl/fi/zvxl6im53o7aoy290530g/youtube_videos_Final_with_classification_and_similarity.csv?rlkey=b76k2j3ou74vj30l7m4egeidq&st=vh573jaz&dl=1"
         df = load_data(filepath, on_bad_lines='skip')
         if df is None:
             return jsonify({'error': 'Failed to load data'}), 500
@@ -459,7 +459,7 @@ def chat():
         user_query = data.get('message', '')
         is_confirmation = data.get('is_confirmation', False)
         hypothesis_info = data.get('hypothesis_info', None)
-        filepath = "https://docs.google.com/spreadsheets/d/1yf73SfxVAcRGPh0FmzORwyXA_Tke0lXm8mwYfrWHVKA/edit?usp=sharing"
+        filepath = "https://www.dropbox.com/scl/fi/zvxl6im53o7aoy290530g/youtube_videos_Final_with_classification_and_similarity.csv?rlkey=b76k2j3ou74vj30l7m4egeidq&st=vh573jaz&dl=1"
         df = load_data(filepath, on_bad_lines='skip')
         if df is None:
             return jsonify({'error': 'Failed to load data'}), 500
