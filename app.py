@@ -34,7 +34,9 @@ def load_data(filepath, on_bad_lines='skip'):
     try:
         df = pd.read_csv(filepath, on_bad_lines='skip')
         df.fillna("", inplace=True)
-        numeric_cols = ['view_count', 'like_count', 'comment_count']
+        df['view_count'] = pd.to_numeric(df['view_count'], errors='coerce').fillna(0)
+        df['like_count'] = pd.to_numeric(df['like_count'], errors='coerce').fillna(0)
+        df['comment_count'] = pd.to_numeric(df['comment_count'], errors='coerce').fillna(0)
         df[numeric_cols] = df[numeric_cols].fillna(0)
         df['combined_text'] = df['title'] + " " + df['description']
         vectorizer = TfidfVectorizer(stop_words='english', max_features=1000)
