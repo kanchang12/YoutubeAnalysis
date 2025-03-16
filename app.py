@@ -32,7 +32,7 @@ LOOKER_STUDIO_IFRAMES = {
 # Load data from CSV
 def load_data(filepath, on_bad_lines='skip'):
     try:
-        df = pd.read_csv(filepath)
+        df = pd.read_csv(filepath, on_bad_lines='skip')
         df.fillna("", inplace=True)
         numeric_cols = ['view_count', 'like_count', 'comment_count']
         df[numeric_cols] = df[numeric_cols].fillna(0)
@@ -296,7 +296,7 @@ def get_chart_data():
         user_query = data.get('query', '')
         
         filepath = "https://docs.google.com/spreadsheets/d/1yf73SfxVAcRGPh0FmzORwyXA_Tke0lXm8mwYfrWHVKA/edit?usp=sharing"
-        df = load_data(filepath)
+        df = load_data(filepat, on_bad_lines='skip')
         
         if df is None:
             return jsonify({'error': 'Failed to load data'}), 500
@@ -409,7 +409,7 @@ def get_chart_data():
 def analyze():
     try:
         filepath = "https://docs.google.com/spreadsheets/d/1yf73SfxVAcRGPh0FmzORwyXA_Tke0lXm8mwYfrWHVKA/edit?usp=sharing"
-        df = load_data(filepath)
+        df = load_data(filepath, on_bad_lines='skip')
         if df is None:
             return jsonify({'error': 'Failed to load data'}), 500
         results = dynamic_hypothesis_testing(df, lambda df: df['engagement_score'] > df['engagement_score'].median())
@@ -445,7 +445,7 @@ def chat():
         is_confirmation = data.get('is_confirmation', False)
         hypothesis_info = data.get('hypothesis_info', None)
         filepath = "https://docs.google.com/spreadsheets/d/1yf73SfxVAcRGPh0FmzORwyXA_Tke0lXm8mwYfrWHVKA/edit?usp=sharing"
-        df = load_data(filepath)
+        df = load_data(filepath, on_bad_lines='skip')
         if df is None:
             return jsonify({'error': 'Failed to load data'}), 500
         
