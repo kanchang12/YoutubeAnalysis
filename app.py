@@ -6,6 +6,7 @@ from openai import OpenAI
 import json
 import pandas as pd
 from flask_cors import CORS
+from io import StringIO
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
@@ -311,7 +312,7 @@ def get_chart_data():
         user_query = data.get('query', '')
         
         filepath = "https://www.dropbox.com/scl/fi/zvxl6im53o7aoy290530g/youtube_videos_Final_with_classification_and_similarity.csv?rlkey=b76k2j3ou74vj30l7m4egeidq&st=vh573jaz&dl=1"
-        df = load_data(filepat, on_bad_lines='skip')
+        df = load_data(filepath)
         
         if df is None:
             return jsonify({'error': 'Failed to load data'}), 500
@@ -423,8 +424,8 @@ def get_chart_data():
 @app.route('/analyze', methods=['GET'])
 def analyze():
     try:
-        filepath= "https://www.dropbox.com/scl/fi/zvxl6im53o7aoy290530g/youtube_videos_Final_with_classification_and_similarity.csv?rlkey=b76k2j3ou74vj30l7m4egeidq&st=vh573jaz&dl=1"
-        df = load_data(filepath, on_bad_lines='skip')
+        filepath = "https://www.dropbox.com/scl/fi/zvxl6im53o7aoy290530g/youtube_videos_Final_with_classification_and_similarity.csv?rlkey=XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+        df = load_data(filepath)  # Removed on_bad_lines parameter
         if df is None:
             return jsonify({'error': 'Failed to load data'}), 500
         results = dynamic_hypothesis_testing(df, lambda df: df['engagement_score'] > df['engagement_score'].median())
@@ -459,8 +460,8 @@ def chat():
         user_query = data.get('message', '')
         is_confirmation = data.get('is_confirmation', False)
         hypothesis_info = data.get('hypothesis_info', None)
-        filepath = "https://www.dropbox.com/scl/fi/zvxl6im53o7aoy290530g/youtube_videos_Final_with_classification_and_similarity.csv?rlkey=b76k2j3ou74vj30l7m4egeidq&st=vh573jaz&dl=1"
-        df = load_data(filepath, on_bad_lines='skip')
+        filepath = "https://www.dropbox.com/scl/fi/zvxl6im53o7aoy290530g/youtube_videos_Final_with_classification_and_similarity.csv?rlkey=XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+        df = load_data(filepath)  # Removed on_bad_lines parameter
         if df is None:
             return jsonify({'error': 'Failed to load data'}), 500
         
@@ -469,9 +470,9 @@ def chat():
         if is_confirmation and hypothesis_info:
             results = dynamic_hypothesis_testing(
                 df,
-                lambda df: df[hypothesis_info['test_metric']] > df[hypothesis_info['test_metric']].median(),  # Fixed bracket placement
+                lambda df: df[hypothesis_info['test_metric']] > df[hypothesis_info['test_metric']].median(),
                 hypothesis_info['test_metric']
-            )  # Added missing closing parenthesis
+            )
             interpretation = interpret_results(results, hypothesis_info['hypothesis'])
             viz_url = get_looker_studio_viz(user_query)
             insights = generate_insights(results)
@@ -498,6 +499,7 @@ def chat():
             'viz_url': LOOKER_STUDIO_IFRAMES['basic_stats'],
             'insights': 'Unable to generate insights due to an error.'
         }), 500
+
 
 
 if __name__ == '__main__':
