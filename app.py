@@ -131,22 +131,15 @@ def get_top_videos(df, n=5):
 # Generate insights using OpenAI
 def generate_insights(data):
     try:
-        prompt = f"""
-        Hypothesis Testing Results:
-        {f"- T-statistic: {data['t_statistic']}\n" if 't_statistic' in data else ''}\
-        {f"- P-value: {data['p_value']}\n" if 'p_value' in data else ''}\
-        {f"- F-statistic: {data['f_statistic']}\n" if 'f_statistic' in data else ''}\
-        {f"- ANOVA P-value: {data['anova_p_value']}\n" if 'anova_p_value' in data else ''}\
-        {f"- Group 1 Mean (Similar Videos): {data['group1_mean']}\n" if 'group1_mean' in data else ''}\
-        {f"- Group 2 Mean (Random Videos): {data['group2_mean']}" if 'group2_mean' in data else ''}
-
-        Structure your response exactly like this:
-        1. Start with ONE SENTENCE in plain language that anyone can understand: "Based on the data, I found that..."
-        2. Then provide TWO brief statistical insights using proper terminology.
-        3. End with ONE specific recommendation.
-
-        Total response should be under 75 words.
-        """
+        prompt = (
+            "Hypothesis Testing Results:\n"
+            + (f"- T-statistic: {data['t_statistic']}\n" if 't_statistic' in data else '')
+            + (f"- P-value: {data['p_value']}\n" if 'p_value' in data else '')
+            + (f"- F-statistic: {data['f_statistic']}\n" if 'f_statistic' in data else '')
+            + (f"- ANOVA P-value: {data['anova_p_value']}\n" if 'anova_p_value' in data else '')
+            + (f"- Group 1 Mean (Similar Videos): {data['group1_mean']}\n" if 'group1_mean' in data else '')
+            + (f"- Group 2 Mean (Random Videos): {data['group2_mean']}" if 'group2_mean' in data else '')
+        )
 
         response = openai_client.chat.completions.create(
             model="gpt-4-turbo",
