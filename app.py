@@ -310,7 +310,7 @@ def get_chart_data():
         data = request.json
         user_query = data.get('query', '')
         
-        filepath = "filepath = "https://www.dropbox.com/scl/fi/zvxl6im53o7aoy290530g/youtube_videos_Final_with_classification_and_similarity.csv?rlkey=b76k2j3ou74vj30l7m4egeidq&st=vh573jaz&dl=1"
+        filepath = "https://www.dropbox.com/scl/fi/zvxl6im53o7aoy290530g/youtube_videos_Final_with_classification_and_similarity.csv?rlkey=b76k2j3ou74vj30l7m4egeidq&st=vh573jaz&dl=1"
         df = load_data(filepat, on_bad_lines='skip')
         
         if df is None:
@@ -423,7 +423,7 @@ def get_chart_data():
 @app.route('/analyze', methods=['GET'])
 def analyze():
     try:
-        filepath = filepath = "https://www.dropbox.com/scl/fi/zvxl6im53o7aoy290530g/youtube_videos_Final_with_classification_and_similarity.csv?rlkey=b76k2j3ou74vj30l7m4egeidq&st=vh573jaz&dl=1"
+        filepath= "https://www.dropbox.com/scl/fi/zvxl6im53o7aoy290530g/youtube_videos_Final_with_classification_and_similarity.csv?rlkey=b76k2j3ou74vj30l7m4egeidq&st=vh573jaz&dl=1"
         df = load_data(filepath, on_bad_lines='skip')
         if df is None:
             return jsonify({'error': 'Failed to load data'}), 500
