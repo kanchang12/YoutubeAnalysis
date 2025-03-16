@@ -424,34 +424,61 @@ def get_chart_data():
 @app.route('/analyze', methods=['GET'])
 def analyze():
     try:
-        filepath = "https://www.dropbox.com/scl/fi/zvxl6im53o7aoy290530g/youtube_videos_Final_with_classification_and_similarity.csv?rlkey=XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
-        df = load_data(filepath)  # Removed on_bad_lines parameter
-        if df is None:
-            return jsonify({'error': 'Failed to load data'}), 500
-        results = dynamic_hypothesis_testing(df, lambda df: df['engagement_score'] > df['engagement_score'].median())
-        insights = generate_insights(results)
-        top_videos = get_top_videos(df)
+        filepath = "https://www.dropbox.com/scl/fi/zvxl6im53o7aoy290530g/youtube_videos_Final_with_classification_and_similarity.csv?rlkey=XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+        df = load_data(filepath)
+        
+        # If data loading failed, return a structured error response
+        if df is None or df.empty:
+            return jsonify({
+                'error': 'Failed to load data',
+                'summary_stats': {
+                    'total_videos': 0,
+                    'avg_views': 0,
+                    'avg_likes': 0,
+                    'avg_comments': 0
+                },
+                'top_videos': [],
+                'analysis_results': {},
+                'insights': 'No data available'
+            }), 500
+
+        # Calculate statistics safely
         summary_stats = {
             "total_videos": len(df),
-            "avg_views": int(df['view_count'].mean()),
-            "avg_likes": int(df['like_count'].mean()),
-            "avg_comments": int(df['comment_count'].mean())
+            "avg_views": int(df['view_count'].mean()) if 'view_count' in df.columns else 0,
+            "avg_likes": int(df['like_count'].mean()) if 'like_count' in df.columns else 0,
+            "avg_comments": int(df['comment_count'].mean()) if 'comment_count' in df.columns else 0
         }
-        global chat_history
-        chat_history = []
+
+        results = dynamic_hypothesis_testing(df, lambda df: df['engagement_score'] > df['engagement_score'].median())
+        insights = generate_insights(results) if results else "No insights available"
+        top_videos = get_top_videos(df) if not df.empty else []
+
         return jsonify({
+            'error': None,
             'analysis_results': results,
             'insights': insights,
             'top_videos': top_videos,
             'summary_stats': summary_stats,
             'viz_url': LOOKER_STUDIO_IFRAMES['basic_stats']
         })
+
     except Exception as e:
         print(f"Error in analyze route: {e}")
         return jsonify({
             'error': 'An error occurred during analysis',
-            'message': str(e)
+            'message': str(e),
+            'summary_stats': {
+                'total_videos': 0,
+                'avg_views': 0,
+                'avg_likes': 0,
+                'avg_comments': 0
+            },
+            'top_videos': [],
+            'analysis_results': {},
+            'insights': 'Error generating insights'
         }), 500
+
 
 @app.route('/chat', methods=['POST'])
 def chat():
