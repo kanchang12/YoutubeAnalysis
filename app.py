@@ -30,31 +30,44 @@ LOOKER_STUDIO_IFRAMES = {
 }
 
 # Load data from CSV
-def load_data(filepath, on_bad_lines='skip'):
+def load_data(filepath):
     try:
-        df = pd.read_csv(filepath, on_bad_lines='skip')
-        df.fillna("", inplace=True)
-        df['view_count'] = pd.to_numeric(df['view_count'], errors='coerce').fillna(0)
-        df['like_count'] = pd.to_numeric(df['like_count'], errors='coerce').fillna(0)
-        df['comment_count'] = pd.to_numeric(df['comment_count'], errors='coerce').fillna(0)
+        df = pd.read_csv(filepath)
+        
+        # First handle numeric columns
+        numeric_cols = ['view_count', 'like_count', 'comment_count']
+        df[numeric_cols] = df[numeric_cols].apply(pd.to_numeric, errors='coerce')
         df[numeric_cols] = df[numeric_cols].fillna(0)
+        
+        # Then handle non-numeric columns
+        text_cols = ['title', 'description']
+        df[text_cols] = df[text_cols].fillna('')
+        
+        # Create combined text field
         df['combined_text'] = df['title'] + " " + df['description']
+        
+        # Rest of your vectorization code
         vectorizer = TfidfVectorizer(stop_words='english', max_features=1000)
         vectorizer.fit(df['combined_text'])
         text_vectors = vectorizer.transform(df['combined_text'])
         channel_vectors = vectorizer.transform(df['title'])
+        
         similarities = []
         for i in range(len(df)):
             similarity = cosine_similarity(text_vectors[i:i+1], channel_vectors[i:i+1])[0][0]
             similarities.append(similarity)
+            
         df['relevance_score'] = similarities
+        
         if len(df) > 0:
             df['relevance_score'] = (df['relevance_score'] - df['relevance_score'].min()) / \
-                                     (df['relevance_score'].max() - df['relevance_score'].min() + 1e-10)
+                                  (df['relevance_score'].max() - df['relevance_score'].min() + 1e-10)
         return df
+        
     except Exception as e:
         print(f"Error loading data: {e}")
         return None
+
 
 # Hypothesis testing
 def dynamic_hypothesis_testing(df, group_condition, metric='relevance_score', min_sample_size=5):
