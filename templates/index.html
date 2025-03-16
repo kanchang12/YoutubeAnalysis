@@ -269,40 +269,6 @@
             border-radius: 15px;
             overflow: hidden;
         }
-
-
-          .chart-container {
-    width: 100%;
-    max-width: 800px;
-    margin: 20px auto;
-    padding: 15px;
-    border: 1px solid #ddd;
-    border-radius: 5px;
-    background-color: #fff;
-    box-shadow: 0 0 10px rgba(0,0,0,0.1);
-  }
-  .chart-title {
-    text-align: center;
-    margin-bottom: 15px;
-  }
-  .chart-type-selector {
-    display: flex;
-    justify-content: center;
-    margin-bottom: 15px;
-  }
-  .chart-btn {
-    padding: 5px 15px;
-    margin: 0 5px;
-    border: 1px solid #ddd;
-    background-color: #f5f5f5;
-    border-radius: 3px;
-    cursor: pointer;
-  }
-  .chart-btn.active {
-    background-color: #4CAF50;
-    color: white;
-    border-color: #4CAF50;
-  }
         
         /* Responsive adjustments */
         @media (max-width: 768px) {
@@ -332,6 +298,30 @@
         </div>
         
         <div class="dashboard-container">
+
+            <!-- Add these elements to your HTML if they don't exist -->
+            <div id="error-message" style="display: none; color: red; margin: 10px 0;"></div>
+            <div id="loading" style="display: none;">Loading analysis...</div>
+            
+            <div id="dashboard">
+                <div class="statistics">
+                    <p>Total Videos: <span id="total-videos">0</span></p>
+                    <p>Average Views: <span id="avg-views">0</span></p>
+                    <p>Average Likes: <span id="avg-likes">0</span></p>
+                    <p>Average Comments: <span id="avg-comments">0</span></p>
+                </div>
+            
+                <div class="insights">
+                    <h3>Insights</h3>
+                    <p id="insights-text"></p>
+                </div>
+            
+                <div class="top-videos">
+                    <h3>Top Videos</h3>
+                    <ul id="top-videos-list"></ul>
+                </div>
+            </div>
+            
             <!-- Stats Cards Row -->
             <div class="row g-4" id="stats-row">
                 <div class="col-md-3 col-sm-6">
@@ -365,25 +355,17 @@
                 <!-- Left Column: Visualization and Insights -->
                 <div class="col-lg-8">
                     <!-- Visualization Card -->
-                    <!-- Dynamic Chart Container -->
-<div class="card mb-4">
-                                                                            <div class="card-header d-flex justify-content-between align-items-center" onclick="toggleCard(this)">
-                                                                                <h5><i class="fas fa-chart-bar me-2"></i>Video Analytics Visualization</h5>
-                                                                                <div id="visualization-label" class="badge bg-primary">Overview</div>
-                                                                            </div>
-                                                                            <div class="card-body p-0">
-                                                                                <!-- Dynamic Chart Container - Will be shown when chart is generated -->
-                                                                                <div id="dynamic-chart-container" class="chart-container" style="display: none;">
-                                                                                    <!-- Chart will be rendered here -->
-                                                                                </div>
-                                                                                
-                                                                                <!-- Looker/Tableau Container - Your existing visualization -->
-                                                                                <div id="looker-container" class="tableau-container">
-                                                                                    <iframe id="looker-iframe" src="" frameborder="0" allowfullscreen style="width:100%; height:600px;"></iframe>
-                                                                                </div>
-                                                                            </div>
-                                                                        </div>
-
+                    <div class="card mb-4">
+                        <div class="card-header d-flex justify-content-between align-items-center" onclick="toggleCard(this)">
+                            <h5><i class="fas fa-chart-bar me-2"></i>Video Analytics Visualization</h5>
+                            <div id="visualization-label" class="badge bg-primary">Overview</div>
+                        </div>
+                        <div class="card-body p-0">
+                            <div id="looker-container" class="tableau-container">
+                                <iframe id="looker-iframe" src="" frameborder="0" allowfullscreen style="width:100%; height:600px;"></iframe>
+                            </div>
+                        </div>
+                    </div>
                 
                     <!-- AI Insights Card -->
                     <div class="card mb-4">
@@ -428,8 +410,6 @@
                                 <button class="btn btn-primary" id="send-btn" 
                                         onclick="sendMessage()" disabled>
                                     <i class="fas fa-paper-plane"></i>
-                                    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.4/Chart.min.js"></script>
-<script src="{{ url_for('static', filename='js/dynamic-chart.js') }}"></script>
                                 </button>
                             </div>
                         </div>
@@ -454,44 +434,121 @@
         card.classList.toggle('open');
     }
 
-      function generateChart(query) {
-    fetch('/get_chart_data', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ query: query }),
-    })
-    .then(response => response.json())
-    .then(data => {
-      if (data.error) {
-        console.error('Error:', data.error);
-        return;
-      }
-      
-      // Show chart container
-      document.getElementById('dynamic-chart-container').style.display = 'block';
-      
-      // Create chart using our function
-      createDynamicChart('dynamic-chart-container', data.chartData, data.chartType, data.chartTitle);
-    })
-    .catch(error => {
-      console.error('Error:', error);
-    });
-  }
-
-  // Attach to the chat form submit event
-  document.addEventListener('DOMContentLoaded', () => {
-    const chatForm = document.getElementById('chat-form');
-    if (chatForm) {
-      chatForm.addEventListener('submit', function(e) {
-        // Get the query from your chat input
-        const query = document.getElementById('chat-input').value;
-        // Generate chart with this query
-        generateChart(query);
-      });
+    // Add this to your JavaScript file or <script> tag
+    function updateDashboard(data) {
+        try {
+            // Check if data exists and has required properties
+            if (!data) {
+                throw new Error('No data received');
+            }
+    
+            // Get the stats object, using empty object as fallback
+            const stats = data.summary_stats || {
+                total_videos: 0,
+                avg_views: 0,
+                avg_likes: 0,
+                avg_comments: 0
+            };
+    
+            // Update statistics with safe access and formatting
+            document.getElementById('total-videos').textContent = stats.total_videos?.toLocaleString() || '0';
+            document.getElementById('avg-views').textContent = stats.avg_views?.toLocaleString() || '0';
+            document.getElementById('avg-likes').textContent = stats.avg_likes?.toLocaleString() || '0';
+            document.getElementById('avg-comments').textContent = stats.avg_comments?.toLocaleString() || '0';
+    
+            // Update insights if available
+            const insightsElement = document.getElementById('insights-text');
+            if (insightsElement) {
+                insightsElement.textContent = data.insights || 'No insights available';
+            }
+    
+            // Update top videos if available
+            const topVideosList = document.getElementById('top-videos-list');
+            if (topVideosList) {
+                topVideosList.innerHTML = ''; // Clear existing content
+                const videos = data.top_videos || [];
+                videos.forEach(video => {
+                    if (video && video.title) {
+                        const li = document.createElement('li');
+                        li.textContent = `${video.title} (Views: ${video.view_count?.toLocaleString() || 0})`;
+                        topVideosList.appendChild(li);
+                    }
+                });
+            }
+    
+            // Handle error messages if any
+            const errorElement = document.getElementById('error-message');
+            if (errorElement) {
+                if (data.error) {
+                    errorElement.textContent = data.error;
+                    errorElement.style.display = 'block';
+                } else {
+                    errorElement.style.display = 'none';
+                }
+            }
+    
+        } catch (error) {
+            console.error('Error updating dashboard:', error);
+            // Show error message to user
+            const errorElement = document.getElementById('error-message');
+            if (errorElement) {
+                errorElement.textContent = 'Error updating dashboard. Please try again.';
+                errorElement.style.display = 'block';
+            }
+        }
     }
-  });
+    
+    async function runAnalysis() {
+        // Show loading state
+        const loadingElement = document.getElementById('loading');
+        if (loadingElement) loadingElement.style.display = 'block';
+    
+        try {
+            const response = await fetch('/analyze');
+            const data = await response.json();
+    
+            if (!response.ok) {
+                throw new Error(data.error || 'Failed to run analysis');
+            }
+    
+            updateDashboard(data);
+    
+        } catch (error) {
+            console.error('Error running analysis:', error);
+            // Show error message to user
+            const errorElement = document.getElementById('error-message');
+            if (errorElement) {
+                errorElement.textContent = `Error running analysis: ${error.message}`;
+                errorElement.style.display = 'block';
+            }
+            
+            // Update dashboard with empty data
+            updateDashboard({
+                summary_stats: {
+                    total_videos: 0,
+                    avg_views: 0,
+                    avg_likes: 0,
+                    avg_comments: 0
+                },
+                insights: 'Error loading data',
+                top_videos: []
+            });
+    
+        } finally {
+            // Hide loading state
+            const loadingElement = document.getElementById('loading');
+            if (loadingElement) loadingElement.style.display = 'none';
+        }
+    }
+    
+    // Add event listener when document is loaded
+    document.addEventListener('DOMContentLoaded', () => {
+        const analyzeButton = document.getElementById('analyze-button');
+        if (analyzeButton) {
+            analyzeButton.addEventListener('click', runAnalysis);
+        }
+    });
+    
 
     // Function to update insights panel
     function updateInsights(insights) {
