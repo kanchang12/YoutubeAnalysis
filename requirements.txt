@@ -5,3 +5,4 @@ scipy
 openai
 scikit-learn
 gunicorn
+flask-cors
