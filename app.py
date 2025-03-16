@@ -4,6 +4,7 @@ import numpy as np
 from scipy.stats import ttest_ind, f_oneway
 from openai import OpenAI
 import json
+import pandas as pd
 from flask_cors import CORS
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
@@ -29,7 +30,7 @@ LOOKER_STUDIO_IFRAMES = {
 }
 
 # Load data from CSV
-def load_data(filepath):
+def load_data(filepath, on_bad_lines='skip'):
     try:
         df = pd.read_csv(filepath)
         df.fillna("", inplace=True)
