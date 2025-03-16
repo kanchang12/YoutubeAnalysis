@@ -293,7 +293,7 @@ def get_chart_data():
     try:
         data = request.json
         user_query = data.get('query', '')
-        <a href="YOUR_GOOGLE_DRIVE_LINK_HERE">Youtube Video Data CSV</a>
+        
         filepath = "https://docs.google.com/spreadsheets/d/1yf73SfxVAcRGPh0FmzORwyXA_Tke0lXm8mwYfrWHVKA/edit?usp=sharing"
         df = load_data(filepath)
         
