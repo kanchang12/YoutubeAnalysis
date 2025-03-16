@@ -269,6 +269,40 @@
             border-radius: 15px;
             overflow: hidden;
         }
+
+
+          .chart-container {
+    width: 100%;
+    max-width: 800px;
+    margin: 20px auto;
+    padding: 15px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    background-color: #fff;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+  }
+  .chart-title {
+    text-align: center;
+    margin-bottom: 15px;
+  }
+  .chart-type-selector {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 15px;
+  }
+  .chart-btn {
+    padding: 5px 15px;
+    margin: 0 5px;
+    border: 1px solid #ddd;
+    background-color: #f5f5f5;
+    border-radius: 3px;
+    cursor: pointer;
+  }
+  .chart-btn.active {
+    background-color: #4CAF50;
+    color: white;
+    border-color: #4CAF50;
+  }
         
         /* Responsive adjustments */
         @media (max-width: 768px) {
@@ -332,9 +366,10 @@
                 <div class="col-lg-8">
                     <!-- Visualization Card -->
                     <div class="card mb-4">
+                        <div id="dynamic-chart-container" class="chart-container" style="display: none;">
                         <div class="card-header d-flex justify-content-between align-items-center" onclick="toggleCard(this)">
-                            <h5><i class="fas fa-chart-bar me-2"></i>Video Analytics Visualization</h5>
-                            <div id="visualization-label" class="badge bg-primary">Overview</div>
+                            //<h5><i class="fas fa-chart-bar me-2"></i>Video Analytics Visualization</h5>
+                          // <div id="visualization-label" class="badge bg-primary">Overview</div>
                         </div>
                         <div class="card-body p-0">
                             <div id="looker-container" class="tableau-container">
@@ -386,6 +421,8 @@
                                 <button class="btn btn-primary" id="send-btn" 
                                         onclick="sendMessage()" disabled>
                                     <i class="fas fa-paper-plane"></i>
+                                    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.4/Chart.min.js"></script>
+<script src="{{ url_for('static', filename='js/dynamic-chart.js') }}"></script>
                                 </button>
                             </div>
                         </div>
@@ -409,6 +446,45 @@
         const card = header.parentElement;
         card.classList.toggle('open');
     }
+
+      function generateChart(query) {
+    fetch('/get_chart_data', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ query: query }),
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.error) {
+        console.error('Error:', data.error);
+        return;
+      }
+      
+      // Show chart container
+      document.getElementById('dynamic-chart-container').style.display = 'block';
+      
+      // Create chart using our function
+      createDynamicChart('dynamic-chart-container', data.chartData, data.chartType, data.chartTitle);
+    })
+    .catch(error => {
+      console.error('Error:', error);
+    });
+  }
+
+  // Attach to the chat form submit event
+  document.addEventListener('DOMContentLoaded', () => {
+    const chatForm = document.getElementById('chat-form');
+    if (chatForm) {
+      chatForm.addEventListener('submit', function(e) {
+        // Get the query from your chat input
+        const query = document.getElementById('chat-input').value;
+        // Generate chart with this query
+        generateChart(query);
+      });
+    }
+  });
 
     // Function to update insights panel
     function updateInsights(insights) {
