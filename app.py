@@ -407,7 +407,7 @@ def get_chart_data():
 @app.route('/analyze', methods=['GET'])
 def analyze():
     try:
-        filepath = r"C:\Users\kanch\Desktop\News\Youtube Project\New folder\youtube_videos_Final - youtube_videos.csv"
+        filepath = "https://docs.google.com/spreadsheets/d/1yf73SfxVAcRGPh0FmzORwyXA_Tke0lXm8mwYfrWHVKA/edit?usp=sharing"
         df = load_data(filepath)
         if df is None:
             return jsonify({'error': 'Failed to load data'}), 500
@@ -443,7 +443,7 @@ def chat():
         user_query = data.get('message', '')
         is_confirmation = data.get('is_confirmation', False)
         hypothesis_info = data.get('hypothesis_info', None)
-        filepath = r"C:\Users\kanch\Desktop\News\Youtube Project\New folder\youtube_videos_Final - youtube_videos.csv"
+        filepath = "https://docs.google.com/spreadsheets/d/1yf73SfxVAcRGPh0FmzORwyXA_Tke0lXm8mwYfrWHVKA/edit?usp=sharing"
         df = load_data(filepath)
         if df is None:
             return jsonify({'error': 'Failed to load data'}), 500
