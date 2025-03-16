@@ -30,44 +30,108 @@ LOOKER_STUDIO_IFRAMES = {
     'channel_growth': 'https://lookerstudio.google.com/embed/reporting/61bd5267-ba4b-408c-b873-ec342207fc0e/page/your_page_id'
 }
 
-# Load data from CSV
+import pandas as pd
+import requests
+import csv
+from io import StringIO
+import logging
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 def load_data(filepath):
     try:
-        df = pd.read_csv(filepath)
-        filepath = "https://www.dropbox.com/scl/fi/zvxl6im53o7aoy290530g/youtube_videos_Final_with_classification_and_similarity.csv?rlkey=b76k2j3ou74vj30l7m4egeidq&st=vh573jaz&dl=1"
-        # First handle numeric columns
+        logger.info(f"Starting to load data from {filepath}")
+        
+        # Download content if it's a URL
+        if filepath.startswith('http'):
+            logger.info("Downloading data from URL")
+            response = requests.get(filepath)
+            content = StringIO(response.text)
+        else:
+            logger.info("Reading local file")
+            content = open(filepath, 'r', encoding='utf-8')
+
+        # First, detect the dialect and delimiter
+        sample = content.read(1024)
+        content.seek(0)  # Reset file pointer
+        
+        try:
+            dialect = csv.Sniffer().sniff(sample)
+            logger.info(f"Detected delimiter: {dialect.delimiter}")
+        except:
+            logger.warning("Could not detect CSV dialect, using comma as delimiter")
+            dialect = csv.excel
+
+        # Read the headers first
+        reader = csv.reader(content, dialect)
+        headers = next(reader)
+        logger.info(f"Headers found: {headers}")
+
+        # Initialize list for valid rows
+        valid_rows = []
+        row_count = 0
+        error_count = 0
+
+        # Process each row
+        for row_num, row in enumerate(reader, start=2):  # start=2 because we already read headers
+            try:
+                # Skip empty rows
+                if not row or all(cell.strip() == '' for cell in row):
+                    continue
+
+                # If row has correct number of fields, process it
+                if len(row) == len(headers):
+                    # Clean the row data
+                    cleaned_row = [cell.strip() for cell in row]
+                    valid_rows.append(cleaned_row)
+                    row_count += 1
+                else:
+                    logger.warning(f"Line {row_num}: Found {len(row)} fields, expected {len(headers)}")
+                    error_count += 1
+
+            except Exception as e:
+                logger.error(f"Error processing row {row_num}: {str(e)}")
+                error_count += 1
+                continue
+
+        logger.info(f"Processed {row_count} valid rows, encountered {error_count} errors")
+
+        # Create DataFrame from valid rows
+        df = pd.DataFrame(valid_rows, columns=headers)
+
+        # Convert numeric columns
         numeric_cols = ['view_count', 'like_count', 'comment_count']
-        df[numeric_cols] = df[numeric_cols].apply(pd.to_numeric, errors='coerce')
-        df[numeric_cols] = df[numeric_cols].fillna(0)
-        
-        # Then handle non-numeric columns
+        for col in numeric_cols:
+            if col in df.columns:
+                df[col] = pd.to_numeric(df[col], errors='coerce')
+                df[col] = df[col].fillna(0)
+                logger.info(f"Converted {col} to numeric, found {df[col].isna().sum()} missing values")
+
+        # Handle text columns
         text_cols = ['title', 'description']
-        df[text_cols] = df[text_cols].fillna('')
-        
-        # Create combined text field
-        df['combined_text'] = df['title'] + " " + df['description']
-        
-        # Rest of your vectorization code
-        vectorizer = TfidfVectorizer(stop_words='english', max_features=1000)
-        vectorizer.fit(df['combined_text'])
-        text_vectors = vectorizer.transform(df['combined_text'])
-        channel_vectors = vectorizer.transform(df['title'])
-        
-        similarities = []
-        for i in range(len(df)):
-            similarity = cosine_similarity(text_vectors[i:i+1], channel_vectors[i:i+1])[0][0]
-            similarities.append(similarity)
-            
-        df['relevance_score'] = similarities
-        
-        if len(df) > 0:
-            df['relevance_score'] = (df['relevance_score'] - df['relevance_score'].min()) / \
-                                  (df['relevance_score'].max() - df['relevance_score'].min() + 1e-10)
+        for col in text_cols:
+            if col in df.columns:
+                df[col] = df[col].fillna('')
+
+        # Close the file if it's not a StringIO object
+        if not isinstance(content, StringIO):
+            content.close()
+
+        if df.empty:
+            logger.warning("No valid data was loaded")
+            return None
+
+        logger.info(f"Successfully loaded {len(df)} rows of data")
         return df
-        
+
     except Exception as e:
-        print(f"Error loading data: {e}")
+        logger.error(f"Fatal error in load_data: {str(e)}", exc_info=True)
         return None
+    finally:
+        # Ensure file is closed
+        if 'content' in locals() and not isinstance(content, StringIO):
+            content.close()
 
 
 # Hypothesis testing
@@ -424,10 +488,9 @@ def get_chart_data():
 @app.route('/analyze', methods=['GET'])
 def analyze():
     try:
-        filepath = "https://www.dropbox.com/scl/fi/zvxl6im53o7aoy290530g/youtube_videos_Final_with_classification_and_similarity.csv?rlkey=XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+        filepath = "your_csv_url_here"
         df = load_data(filepath)
         
-        # If data loading failed, return a structured error response
         if df is None or df.empty:
             return jsonify({
                 'error': 'Failed to load data',
@@ -438,8 +501,8 @@ def analyze():
                     'avg_comments': 0
                 },
                 'top_videos': [],
-                'analysis_results': {},
-                'insights': 'No data available'
+                'insights': 'No data available',
+                'viz_url': None
             }), 500
 
         # Calculate statistics safely
@@ -450,9 +513,23 @@ def analyze():
             "avg_comments": int(df['comment_count'].mean()) if 'comment_count' in df.columns else 0
         }
 
-        results = dynamic_hypothesis_testing(df, lambda df: df['engagement_score'] > df['engagement_score'].median())
-        insights = generate_insights(results) if results else "No insights available"
-        top_videos = get_top_videos(df) if not df.empty else []
+        try:
+            results = dynamic_hypothesis_testing(df, lambda df: df['engagement_score'] > df['engagement_score'].median())
+        except Exception as e:
+            logger.error(f"Error in hypothesis testing: {str(e)}")
+            results = {}
+
+        try:
+            insights = generate_insights(results) if results else "No insights available"
+        except Exception as e:
+            logger.error(f"Error generating insights: {str(e)}")
+            insights = "Error generating insights"
+
+        try:
+            top_videos = get_top_videos(df) if not df.empty else []
+        except Exception as e:
+            logger.error(f"Error getting top videos: {str(e)}")
+            top_videos = []
 
         return jsonify({
             'error': None,
@@ -460,11 +537,11 @@ def analyze():
             'insights': insights,
             'top_videos': top_videos,
             'summary_stats': summary_stats,
-            'viz_url': LOOKER_STUDIO_IFRAMES['basic_stats']
+            'viz_url': LOOKER_STUDIO_IFRAMES.get('basic_stats', '')
         })
 
     except Exception as e:
-        print(f"Error in analyze route: {e}")
+        logger.error(f"Error in analyze route: {str(e)}", exc_info=True)
         return jsonify({
             'error': 'An error occurred during analysis',
             'message': str(e),
@@ -476,8 +553,10 @@ def analyze():
             },
             'top_videos': [],
             'analysis_results': {},
-            'insights': 'Error generating insights'
+            'insights': 'Error generating insights',
+            'viz_url': None
         }), 500
+
 
 
 @app.route('/chat', methods=['POST'])
