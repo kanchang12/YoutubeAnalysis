@@ -287,6 +287,122 @@ def chat_with_data_regular(user_query, analysis_data, df):
 def home():
     return render_template('index.html')
 
+
+@app.route('/get_chart_data', methods=['POST'])
+def get_chart_data():
+    try:
+        data = request.json
+        user_query = data.get('query', '')
+        filepath = r"C:\Users\kanch\Desktop\News\Youtube Project\New folder\youtube_videos_Final - youtube_videos.csv"
+        df = load_data(filepath)
+        
+        if df is None:
+            return jsonify({'error': 'Failed to load data'}), 500
+        
+        # Determine chart type using AI
+        chart_prompt = f"""
+        User query: "{user_query}"
+        
+        Based on this query, determine the most appropriate chart type to visualize YouTube data.
+        Choose from: pie, bar, line
+        
+        If the query is about proportions, categories, or distribution among different groups, use 'pie'.
+        If the query is about comparing quantities across categories, use 'bar'.
+        If the query is about trends over time or sequences, use 'line'.
+        
+        Respond with ONLY one word: pie, bar, or line
+        """
+        
+        chart_response = openai_client.chat.completions.create(
+            model="gpt-4-turbo",
+            messages=[
+                {"role": "system", "content": "You are a data visualization expert. Respond with only one word."},
+                {"role": "user", "content": chart_prompt}
+            ],
+            max_tokens=10
+        )
+        
+        chart_type = chart_response.choices[0].message.content.strip().lower()
+        
+        # Determine what data to extract based on the query
+        data_prompt = f"""
+        User query: "{user_query}"
+        Available columns in the dataframe: {', '.join(df.columns.tolist())}
+        
+        Determine what data should be extracted to answer this query.
+        Return a JSON object with:
+        1. "category_column": column name to use for grouping/categories
+        2. "value_column": column name to use for values (if applicable, otherwise just use "count")
+        3. "operation": aggregation operation (count, sum, mean, max, min)
+        4. "title": a short, descriptive title for the chart
+        
+        ONLY respond with valid JSON. No other text.
+        """
+        
+        data_extraction_response = openai_client.chat.completions.create(
+            model="gpt-4-turbo",
+            messages=[
+                {"role": "system", "content": "You are a data analysis expert. Respond with only JSON."},
+                {"role": "user", "content": data_prompt}
+            ],
+            max_tokens=150
+        )
+        
+        try:
+            extraction_info = json.loads(data_extraction_response.choices[0].message.content.strip())
+            category_col = extraction_info.get('category_column')
+            value_col = extraction_info.get('value_column')
+            operation = extraction_info.get('operation', 'count')
+            chart_title = extraction_info.get('title', 'YouTube Data Analysis')
+            
+            # Generate chart data
+            if operation == 'count':
+                chart_data = df[category_col].value_counts().reset_index()
+                chart_data.columns = ['name', 'value']
+            elif operation == 'sum':
+                chart_data = df.groupby(category_col)[value_col].sum().reset_index()
+                chart_data.columns = ['name', 'value']
+            elif operation == 'mean':
+                chart_data = df.groupby(category_col)[value_col].mean().reset_index()
+                chart_data.columns = ['name', 'value']
+            elif operation == 'max':
+                chart_data = df.groupby(category_col)[value_col].max().reset_index()
+                chart_data.columns = ['name', 'value']
+            elif operation == 'min':
+                chart_data = df.groupby(category_col)[value_col].min().reset_index()
+                chart_data.columns = ['name', 'value']
+            else:
+                chart_data = df[category_col].value_counts().reset_index()
+                chart_data.columns = ['name', 'value']
+            
+            # Convert to list of dicts for JSON serialization
+            chart_data_list = chart_data.to_dict('records')
+            
+            # Limit to top 10 values for better visualization
+            if len(chart_data_list) > 10:
+                chart_data_list = sorted(chart_data_list, key=lambda x: x['value'], reverse=True)[:10]
+            
+            return jsonify({
+                'chartType': chart_type,
+                'chartData': chart_data_list,
+                'chartTitle': chart_title
+            })
+            
+        except json.JSONDecodeError:
+            return jsonify({
+                'error': 'Failed to parse AI response',
+                'chartType': 'bar',
+                'chartData': []
+            }), 500
+            
+    except Exception as e:
+        print(f"Error generating chart data: {e}")
+        return jsonify({
+            'error': 'An error occurred while generating chart data',
+            'message': str(e)
+        }), 500
+
+        
 @app.route('/analyze', methods=['GET'])
 def analyze():
     try:
